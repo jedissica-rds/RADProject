@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import List
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
+import re
 from llm.model import ModelLoader
 from llm.prompts import create_prompt, create_fast_prompt
 from pdf.extractor import PDFExtractor
@@ -23,17 +22,39 @@ class Summarizer:
 
         return False
 
-    def divide_chunks(self, text: str, chunk_size=400, overlap=100) -> List[str]:
-        words = text.split()
+    import re
+    from typing import List
+
+    import re
+    from typing import List
+
+    def divide_chunks(self, text: str, chunk_size=400, overlap=1) -> List[str]:
+        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+
         chunks = []
-        i = 0
+        current_chunk = []
+        current_len = 0
 
-        while i < len(words):
-            chunk = " ".join(words[i:i + chunk_size])
-            chunks.append(chunk)
-            i += chunk_size - overlap
+        for sentence in sentences:
+            sentence_len = len(sentence.split())
 
-        return [c for c in chunks if c.strip()]
+            if current_len + sentence_len > chunk_size:
+                chunks.append(" ".join(current_chunk))
+
+                if overlap > 0:
+                    current_chunk = current_chunk[-overlap:]
+                    current_len = sum(len(s.split()) for s in current_chunk)
+                else:
+                    current_chunk = []
+                    current_len = 0
+
+            current_chunk.append(sentence)
+            current_len += sentence_len
+
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+
+        return chunks
 
     def fast_summarize(self, text_prompt: str, max_tokens=1200) -> str:
         messages = [

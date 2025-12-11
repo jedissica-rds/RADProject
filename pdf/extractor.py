@@ -3,6 +3,8 @@ from collections import Counter
 from pathlib import Path
 import pymupdf
 import re
+
+from pdf.cleaner import cleaning
 from utils.stopwords import stopwords
 
 
@@ -32,7 +34,7 @@ class PDFExtractor:
         full_text = ""
         for page in self.document:
             text = page.get_text()
-            text = text.replace("-\n", "").replace("\n", " ")
+            text = cleaning(text)
 
             full_text += text
 
