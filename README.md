@@ -32,9 +32,8 @@ pip install torch transformers pymupdf
 ### Instalação do Projeto
 
 ```bash
-git clone https://github.com/seu-usuario/rad.git
-cd rad
-pip install -r requirements.txt
+git clone https://github.com/seu-usuario/RADProject.git
+cd RADProject
 ```
 
 ## 💻 Uso
@@ -133,6 +132,13 @@ Salvas em: `./images/[titulo_do_pdf]/`
 ### Relatórios
 
 Salvos em: `./reports/relatorio_[nome_do_arquivo].md`
+
+## Avaliação
+
+Gostaria que fossem avaliadas:
+
+- Estrutura, Arquitetura e Modularização
+- Utilização do prompt, modelo escolhido e configuração de tokens.
 
 ## Licença
 
