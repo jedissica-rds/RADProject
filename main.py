@@ -12,68 +12,63 @@ from pdf.images import extract_images
 def main():
     exhibit_header()
 
-    file_path: Path = receive_file()
+    args, file_path = receive_file()
 
     if not validate_file(file_path):
-        return
-
-    if not file_path.exists():
-        print(f"Erro: O arquivo '{file_path}' não foi encontrado.")
         return
 
     extractor = PDFExtractor(file_path)
 
     try:
-        exhibit_section("MÉTRICAS")
-        report = extractor.get_report()
-        print(format_pdf_report(report))
+        # MÉTRICAS
+        if not args.no_metrics:
+            exhibit_section("MÉTRICAS")
+            report = extractor.get_report()
+            print(format_pdf_report(report))
+        else:
+            report = {"skipped_metrics": True}
 
+        # EXTRAÇÃO DE IMAGENS
         exhibit_section("EXTRAÇÃO DE IMAGENS")
         images_count = extract_images(file_path)
 
-        exhibit_section("RESUMO")
+        # RESUMO
+        summary = ""
+        if not args.no_summary:
+            exhibit_section("RESUMO")
 
-        modo = get_mode()
-        report['batch_mode'] = (modo == '2')
+            modo = get_mode() if not args.no_ui else "1"
+            report["batch_mode"] = (modo == '2')
 
-        print("\nCarregando modelo de linguagem...")
-        loader = ModelLoader()
+            print("\nCarregando modelo de linguagem...")
+            loader = ModelLoader()
 
-        with Summarizer(loader, extractor) as summarizer:
-            text = extractor.get_text()
+            with Summarizer(loader, extractor) as summarizer:
+                text = extractor.get_text()
 
-            print("📝 Gerando resumo...\n")
+                print("Gerando resumo...\n")
 
-            if modo == '2':
-                summary = summarizer.summarize_batched_pdfs(text)
-            else:
-                summary = summarizer.summarize_pdf(text)
+                if modo == '2':
+                    summary = summarizer.summarize_batched_pdfs(text)
+                else:
+                    summary = summarizer.summarize_pdf(text)
 
-        exhibit_section("RESUMO EXECUTIVO FINAL")
-        print(summary)
-        print()
-
-    except FileNotFoundError as e:
-        print(f"Erro: O arquivo não pôde ser aberto.")
-        print(f"   Detalhes: {e}")
-        return
-
-    except KeyboardInterrupt:
-        print("\n\nProcesso interrompido pelo usuário.")
-        return
+            exhibit_section("RESUMO EXECUTIVO FINAL")
+            print(summary)
+            print()
+        else:
+            summary = "**(Resumo não gerado — flag --no-summary)**"
 
     except Exception as e:
-        print(f"Erro inesperado durante o processamento: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Erro inesperado: {e}")
         return
 
     finally:
         extractor.close()
 
+    #RELATÓRIO
     try:
         exhibit_section("GERAÇÃO DE RELATÓRIO")
-
         markdown_report = create_markdown_report(
             report=report,
             summary=summary,
@@ -90,7 +85,6 @@ def main():
 
     except Exception as e:
         print(f"Erro ao salvar relatório: {e}")
-        print("   O processamento foi concluído, mas o relatório não foi salvo.")
 
 
 if __name__ == "__main__":
