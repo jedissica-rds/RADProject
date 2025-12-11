@@ -23,7 +23,7 @@ class Summarizer:
 
         return False
 
-    def divide_chunks(self, text: str, chunk_size=600, overlap=50) -> List[str]:
+    def divide_chunks(self, text: str, chunk_size=400, overlap=100) -> List[str]:
         words = text.split()
         chunks = []
         i = 0
@@ -35,7 +35,7 @@ class Summarizer:
 
         return [c for c in chunks if c.strip()]
 
-    def fast_summarize(self, text_prompt: str, max_tokens=100) -> str:
+    def fast_summarize(self, text_prompt: str, max_tokens=1200) -> str:
         messages = [
             {"role": "user", "content": [{"type": "text", "text": text_prompt}]}
         ]
@@ -69,7 +69,7 @@ class Summarizer:
             for idx, chunk in enumerate(chunks):
                 print(f"{idx + 1}/{len(chunks)}...", end=" ")
                 prompt = create_fast_prompt(chunk)
-                summary = self.fast_summarize(prompt, max_tokens=80)
+                summary = self.fast_summarize(prompt)
                 partial_summaries.append(summary)
                 print("✔")
         else:
@@ -82,7 +82,7 @@ class Summarizer:
 
                 for chunk in batch_chunks:
                     prompt = create_fast_prompt(chunk)
-                    summary = self.fast_summarize(prompt, max_tokens=150)
+                    summary = self.fast_summarize(prompt)
                     partial_summaries.append(summary)
 
                 print("✔")
@@ -92,17 +92,17 @@ class Summarizer:
     def generate_final_summary(self, partial_summaries: List[str]) -> str:
         compiled = " ".join(partial_summaries)
         final_prompt = create_prompt(compiled)
-        return self.fast_summarize(final_prompt, max_tokens=800)
+        return self.fast_summarize(final_prompt)
 
     def summarize_pdf(self, long_text: str) -> str:
-        chunks = self.divide_chunks(long_text, chunk_size=600, overlap=50)
+        chunks = self.divide_chunks(long_text)
         print(f"Texto dividido em {len(chunks)} chunks.\n")
 
         partial_summaries = self.process_chunks(chunks)
         return self.generate_final_summary(partial_summaries)
 
     def summarize_batched_pdfs(self, long_text: str) -> str:
-        chunks = self.divide_chunks(long_text, chunk_size=600, overlap=50)
+        chunks = self.divide_chunks(long_text)
         print(f"Texto dividido em {len(chunks)} chunks.\n")
 
         batch_size = 4 if torch.cuda.is_available() else 2
