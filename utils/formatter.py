@@ -1,7 +1,7 @@
 from typing import List
 
 
-# TODO: CHECAR FORMA  MAIS MODULARIZADA DE REALIZAR ISSO
+# TODO: CHECAR FORMA MAIS MODULARIZADA DE REALIZAR ISSO
 
 def format_pdf_report(report: dict) -> str:
     output: List = [

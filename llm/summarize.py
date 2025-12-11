@@ -73,8 +73,6 @@ class Summarizer:
                 partial_summaries.append(summary)
                 print("✔")
         else:
-            print(f"⚡ Processando em lotes de {batch_size} chunks...\n")
-
             for i in range(0, len(chunks), batch_size):
                 batch_chunks = chunks[i:i + batch_size]
                 current_batch = i // batch_size + 1
