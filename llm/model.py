@@ -1,29 +1,28 @@
+import logging
 from typing import Tuple
-from transformers import AutoProcessor, Gemma2ForCausalLM
+from transformers import AutoTokenizer, Gemma2ForCausalLM
 import torch
+
 
 class ModelLoader:
     def __init__(self, model_id: str = "google/gemma-2-2b-it"):
         self.model_id = model_id
 
-    def load(self) -> Tuple[Gemma2ForCausalLM, AutoProcessor]:
-        print(f"Carregando modelo...")
+    def load(self) -> Tuple[Gemma2ForCausalLM, AutoTokenizer]:
+        logging.info(f"carregando modelo: {self.model_id}")
+
+        device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+
+        dtype = torch.bfloat16 if device == "mps" else (torch.float16 if device == "cuda" else torch.float32)
 
         model = Gemma2ForCausalLM.from_pretrained(
             self.model_id,
-            device_map="auto",
-            torch_dtype=torch.bfloat16,
+            device_map="balanced",
+            dtype=dtype,
             low_cpu_mem_usage=True
         )
         model.eval()
 
-        if torch.cuda.is_available():
-            try:
-                model = torch.compile(model, mode="reduce-overhead")
-                print("Modelo compilado com torch.compile")
-            except Exception as e:
-                print(f"⚠ torch.compile não disponível: {e}")
+        tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        return model, tokenizer
 
-        processor = AutoProcessor.from_pretrained(self.model_id)
-
-        return model, processor

@@ -1,16 +1,21 @@
-from pathlib import Path
-from typing import List
 import torch
 import re
+from transformers import TextStreamer
+
 from llm.model import ModelLoader
 from llm.prompts import create_prompt, create_fast_prompt
 from pdf.extractor import PDFExtractor
+from typing import List
+
+import logging
+
+from utils.progressBar import ProgressBar
 
 
 class Summarizer:
 
     def __init__(self, loader: ModelLoader, pdf_extractor: PDFExtractor):
-        self.model, self.processor = loader.load()
+        self.model, self.tokenizer = loader.load()
         self.extractor = pdf_extractor
 
     def __enter__(self):
@@ -21,12 +26,6 @@ class Summarizer:
             torch.cuda.empty_cache()
 
         return False
-
-    import re
-    from typing import List
-
-    import re
-    from typing import List
 
     def divide_chunks(self, text: str, chunk_size=400, overlap=1) -> List[str]:
         sentences = re.split(r'(?<=[.!?])\s+', text.strip())
@@ -56,12 +55,12 @@ class Summarizer:
 
         return chunks
 
-    def fast_summarize(self, text_prompt: str, max_tokens=1200) -> str:
+    def fast_summarize(self, text_prompt: str, max_tokens=1000, stream: bool = False) -> str:
         messages = [
             {"role": "user", "content": [{"type": "text", "text": text_prompt}]}
         ]
 
-        inputs = self.processor.apply_chat_template(
+        inputs = self.tokenizer.apply_chat_template(
             messages,
             add_generation_prompt=True,
             tokenize=True,
@@ -71,61 +70,76 @@ class Summarizer:
 
         input_len = inputs["input_ids"].shape[-1]
 
-        with torch.inference_mode():
-            output = self.model.generate(
-                **inputs,
-                max_new_tokens=max_tokens,
-                do_sample=True,
-                num_beams=1,
-                use_cache=True,
-            )
+        info = {
+            **inputs,
+            "max_new_tokens": max_tokens,
+            "do_sample": False,
+            "use_cache": True,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+
+        if not stream:
+            with torch.inference_mode():
+                output = self.model.generate(**info)
+        else:
+            streamer = TextStreamer(self.tokenizer, skip_prompt=True)
+            info["streamer"] = streamer
+
+            with torch.inference_mode():
+                output = self.model.generate(**info)
 
         generated = output[0][input_len:]
-        return self.processor.decode(generated, skip_special_tokens=True)
+        return self.tokenizer.decode(generated, skip_special_tokens=True)
 
     def process_chunks(self, chunks: List[str], batch_size: int = None) -> List[str]:
         partial_summaries = []
 
+        total = len(chunks)
+        bar = ProgressBar(total, prefix="Progresso")
+
         if batch_size is None:
             for idx, chunk in enumerate(chunks):
-                print(f"{idx + 1}/{len(chunks)}...", end=" ")
                 prompt = create_fast_prompt(chunk)
                 summary = self.fast_summarize(prompt)
                 partial_summaries.append(summary)
-                print("✔")
+
+                bar.update()
+
+                if (idx + 1) % 5 == 0 and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
         else:
             for i in range(0, len(chunks), batch_size):
                 batch_chunks = chunks[i:i + batch_size]
-                current_batch = i // batch_size + 1
-                total_batch = (len(chunks) - 1) // batch_size + 1
-
-                print(f"Batch {current_batch}/{total_batch}...", end=" ")
 
                 for chunk in batch_chunks:
                     prompt = create_fast_prompt(chunk)
                     summary = self.fast_summarize(prompt)
                     partial_summaries.append(summary)
 
-                print("✔")
+                    bar.update()
 
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+        bar.finish()
         return partial_summaries
 
     def generate_final_summary(self, partial_summaries: List[str]) -> str:
         compiled = " ".join(partial_summaries)
         final_prompt = create_prompt(compiled)
-        return self.fast_summarize(final_prompt)
+        return self.fast_summarize(final_prompt, stream=True)
 
     def summarize_pdf(self, long_text: str) -> str:
         chunks = self.divide_chunks(long_text)
-        print(f"Texto dividido em {len(chunks)} chunks.\n")
+        logging.info(f"Texto dividido em {len(chunks)} chunks.\n")
 
         partial_summaries = self.process_chunks(chunks)
         return self.generate_final_summary(partial_summaries)
 
     def summarize_batched_pdfs(self, long_text: str) -> str:
         chunks = self.divide_chunks(long_text)
-        print(f"Texto dividido em {len(chunks)} chunks.\n")
+        logging.info(f"Texto dividido em {len(chunks)} chunks.\n")
 
-        batch_size = 4 if torch.cuda.is_available() else 2
+        batch_size = 2 if torch.cuda.is_available() else 1
         partial_summaries = self.process_chunks(chunks, batch_size=batch_size)
         return self.generate_final_summary(partial_summaries)

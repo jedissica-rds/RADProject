@@ -37,7 +37,7 @@ def exhibit_header():
 
 def exhibit_section(title: str):
     print("\n" + "-" * 70)
-    print(f"📌 {title}")
+    print(f"{title}")
     print("-" * 70)
 
 def get_mode() -> str:

@@ -12,24 +12,30 @@ def extract_images(file_path: Path):
         page = document.load_page(page_index)
         image_list = page.get_images(full=True)
 
-        destination: Path = create_pdf_directory(document)
+        if len(image_list) > 0:
 
-        for image_index, img in enumerate(image_list, start=1):
-            xref = img[0]
+            destination: Path = create_pdf_directory(document)
 
-            base_image = document.extract_image(xref)
-            image_bytes = base_image["image"]
-            image_ext = base_image["ext"]
+            for image_index, img in enumerate(image_list, start=1):
+                xref = img[0]
 
-            image_name = f"img_{index}.{image_ext}"
-            image_path = destination / image_name
+                base_image = document.extract_image(xref)
+                image_bytes = base_image["image"]
+                image_ext = base_image["ext"]
 
-            with open(image_path, "wb") as image_file:
-                image_file.write(image_bytes)
+                image_name = f"img_{index}.{image_ext}"
+                image_path = destination / image_name
 
-            index += 1
+                with open(image_path, "wb") as image_file:
+                    image_file.write(image_bytes)
 
-    print(f"{index-1} Imagens salvas!")
+                index += 1
+
+    if (index-1) > 0:
+        print(f"{index-1} Imagens salvas!")
+    else:
+        print(f"Não há imagens no arquivo.")
+
     document.close()
 
 

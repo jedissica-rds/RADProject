@@ -40,7 +40,6 @@ def main():
             modo = get_mode() if not args.no_ui else "1"
             report["batch_mode"] = (modo == '2')
 
-            print("\nCarregando modelo de linguagem...")
             loader = ModelLoader()
 
             with Summarizer(loader, extractor) as summarizer:
