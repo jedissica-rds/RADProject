@@ -41,7 +41,7 @@ cd RADProject
 ### Modo Interativo
 
 ```bash
-python main.py
+python3 main.py
 ```
 
 O sistema solicitará o caminho do arquivo PDF.
@@ -51,6 +51,30 @@ O sistema solicitará o caminho do arquivo PDF.
 ```bash
 python main.py caminho/para/arquivo.pdf
 ```
+
+### Flags
+
+```bash
+python main.py --default-file
+```
+Executa com o arquivo default do programa: PM Canvas de um projeto mobile chamado Noveau
+
+```bash
+python main.py --no-ui
+```
+Ignora inputs de usuário (endereço e modo) e utiliza os valores default.
+
+
+```bash
+python main.py --no-summary
+```
+Não executa o resumo e faz apenas as métricas.
+
+
+```bash
+python main.py --no-metrics
+```
+Não encontra as métricas e pula logo para o resumo.
 
 ### Fluxo de Execução
 
@@ -116,13 +140,6 @@ Ajuste no arquivo `summarize.py`:
 chunks = self.divide_chunks(long_text, chunk_size=600, overlap=50)
 ```
 
-## Otimizações
-
-- Suporte a GPU via CUDA
-- Compilação do modelo com `torch.compile`
-- Processamento em lotes para maior velocidade
-- Cache de inferência habilitado
-
 ## Saídas
 
 ### Imagens
@@ -139,10 +156,6 @@ Gostaria que fossem avaliadas:
 
 - Estrutura, Arquitetura e Modularização
 - Utilização do prompt, modelo escolhido e configuração de tokens.
-
-## Licença
-
-Este projeto está sob a licença MIT.
 
 ## Autor
 
