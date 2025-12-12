@@ -36,7 +36,7 @@ git clone https://github.com/seu-usuario/RADProject.git
 cd RADProject
 ```
 
-## 💻 Uso
+## Uso
 
 ### Modo Interativo
 
