@@ -108,21 +108,6 @@ Por padrão, utiliza o `google/gemma-2-2b-it`. Para alterar:
 loader = ModelLoader(model_id="seu-modelo-preferido")
 ```
 
-### Tamanho dos Chunks
-
-Ajuste no arquivo `summarize.py`:
-
-```python
-chunks = self.divide_chunks(long_text, chunk_size=600, overlap=50)
-```
-
-## Otimizações
-
-- Suporte a GPU via CUDA
-- Compilação do modelo com `torch.compile`
-- Processamento em lotes para maior velocidade
-- Cache de inferência habilitado
-
 ## Saídas
 
 ### Imagens
